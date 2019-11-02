@@ -15,7 +15,7 @@ class ViewController: UIViewController {
     var scoreLabel: UILabel!
     var letterButtons = [UIButton]()
     
-    var activeButtons = [UIButton]()
+    var activatedButtons = [UIButton]()
     var solutions  = [String]()
     var score = 0
     var level = 1
@@ -61,14 +61,14 @@ class ViewController: UIViewController {
         let submit = UIButton(type: .system)
         submit.translatesAutoresizingMaskIntoConstraints = false
         submit.setTitle("Submit", for: .normal)
-        submit.addTarget(self, action: #selector(submitTapped), for: .touchUpOutside)
+        submit.addTarget(self, action: #selector(submitTapped), for: .touchUpInside)
         view.addSubview(submit)
         
         
         let clear = UIButton(type: .system)
         clear.translatesAutoresizingMaskIntoConstraints = false
         clear.setTitle("CLEAR", for: .normal)
-        clear.addTarget(self, action: #selector(clearTapped), for: .touchUpOutside)
+        clear.addTarget(self, action: #selector(clearTapped), for: .touchUpInside)
 
         view.addSubview(clear)
         
@@ -76,7 +76,7 @@ class ViewController: UIViewController {
         let buttonsView = UIView()
         buttonsView.translatesAutoresizingMaskIntoConstraints = false
         
-        clear.addTarget(self, action: #selector(letterTapped), for: .touchUpOutside)
+      
 
         
         view.addSubview(buttonsView)
@@ -150,10 +150,11 @@ class ViewController: UIViewController {
 
                 // give the button some temporary text so we can see it on-screen
                // letterButton.setTitle("WWW", for: .normal)
-
+letterButton.addTarget(self, action: #selector(letterTapped), for: .touchUpInside)
                 // calculate the frame of this button using its column and row
                 let frame = CGRect(x: col * width, y: row * height, width: width, height: height)
                 letterButton.frame = frame
+                
 
                 // add it to the buttons view
                 buttonsView.addSubview(letterButton)
@@ -187,19 +188,57 @@ class ViewController: UIViewController {
         loadLevel()
         
     }
-    @objc func letterTapped(_ sender: UIButton) {
+    
+    @objc func letterTapped(_ sender: UIButton)  {
+        guard let buttonTitle = sender.titleLabel?.text else {return}
+        currentAnswer.text = currentAnswer.text?.appending(buttonTitle)
+        activatedButtons.append(sender)
+        sender.isHidden = true
     }
 
+     @objc func clearTapped(_sender: UIButton){
+        
+        currentAnswer.text = ""
+        for btn in activatedButtons {
+            btn.isHidden = false
+        }
 
-    
-    @objc func clearTapped(_sender: UIButton){
+        activatedButtons.removeAll()
         
     }
 
     @objc func submitTapped(_ sender: UIButton) {
+        
+        guard let answerText = currentAnswer.text else { return }
+
+        if let solutionPosition = solutions.firstIndex(of: answerText) {
+            activatedButtons.removeAll()
+
+            var splitAnswers = answersLabel.text?.components(separatedBy: "\n")
+            splitAnswers?[solutionPosition] = answerText
+            answersLabel.text = splitAnswers?.joined(separator: "\n")
+
+            currentAnswer.text = ""
+            score += 1
+
+            if score % 7 == 0 {
+                let ac = UIAlertController(title: "Well done!", message: "Are you ready for the next level?", preferredStyle: .alert)
+                ac.addAction(UIAlertAction(title: "Let's go!", style: .default, handler: levelUp))
+                present(ac, animated: true)
+            }
+        }
     
     }
+    func levelUp(action: UIAlertAction) {
+        level += 1
+        solutions.removeAll(keepingCapacity: true)
 
+        loadLevel()
+
+        for btn in letterButtons {
+            btn.isHidden = false
+        }
+    }
     
     func loadLevel() {
         var clueString = ""
